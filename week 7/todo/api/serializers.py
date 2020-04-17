@@ -1,0 +1,41 @@
+from rest_framework import serializers
+from todo.auth_.serializers import MyUserSerializer
+from todo.api.models import Task, TaskList
+
+
+class TaskListSerializer(serializers.ModelSerializer):
+    created_by = MyUserSerializer(read_only=True)
+
+    class Meta:
+        model = TaskList
+        fields = ('id', 'name', 'created_by',)
+
+
+class TaskSerializer(serializers.ModelSerializer):
+    task_list = TaskListSerializer(read_only=True)
+
+    class Meta:
+        model = Task
+        fields = ('id', 'name', 'created_at', 'due_on', 'status', 'task_list',)
+
+
+class TaskListShortSerializer(serializers.ModelSerializer):
+    task_list_id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(required=True)
+
+    class Meta:
+        model = TaskList
+        fields = ('id', 'name', 'created_by', 'task_list_id',)
+
+    def validate_name(self, value):
+        if ['/', '%'] in value:
+            raise serializers.ValidationError('invalid char in name field')
+        return value
+
+
+class TaskListFullSerializer(TaskListShortSerializer):
+    task = TaskSerializer(read_only=True)
+
+    class Meta(TaskListShortSerializer.Meta):
+        fields = TaskListShortSerializer.Meta.fields + ('task',)
+
